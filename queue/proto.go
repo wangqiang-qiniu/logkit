@@ -16,6 +16,27 @@ type BackendQueue interface {
 	Empty() error
 }
 
+type LogKitFile interface {
+	Remove() error
+	AbsLocalPath() string
+	AbsDestPath() string
+	Close() error
+	WriteCount() int
+	WritePos() int64
+}
+type FilesQueue interface {
+	Name() string
+	PutFile(localPath, destPath string, writeCount int, needRemove bool) (err error)
+	PutLogKitFile(LogKitFile) error
+	PutDatas([] Data) error
+	FinishLogKitFile(LogKitFile) error
+	PopLogKitFile() (LogKitFile, bool)
+	Close() error
+	Delete() error
+	Depth() int64
+	Empty() error
+}
+
 // DataQueue 代表了无需编解码可直接放取 Data 的队列
 type DataQueue interface {
 	// PutDatas 用于存放一组数据
@@ -25,7 +46,7 @@ type DataQueue interface {
 }
 
 const (
-	FROM_NONE = iota
+	FROM_NONE   = iota
 	FROM_DISK
 	FROM_MEMORY
 )

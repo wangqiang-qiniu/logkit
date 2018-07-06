@@ -6,6 +6,7 @@ import (
 
 	"github.com/qiniu/logkit/conf"
 	. "github.com/qiniu/logkit/utils/models"
+	"github.com/qiniu/logkit/queue"
 )
 
 // pandora
@@ -42,7 +43,13 @@ const (
 	KeyPandoraKodoGzip           = "pandora_kodo_gzip"
 	KeyPandoraKodoRotateStrategy = "pandora_kodo_rotate_strategy"
 	KeyPandoraKodoRotateInterval = "pandora_kodo_rotate_interval"
-	KeyPandoraKodoRotateSize	 = "pandora_kodo_rotate_size"
+	KeyPandoraKodoRotateSize     = "pandora_kodo_rotate_size"
+
+	KeyKodoAK         = "kodo_ak"
+	KeyKodoSK         = "kodo_sk"
+	KeyKodoFilePrefix = "kodo_prefix"
+	KeyKodoBucketName = "kodo_bucket_name"
+	KeyKodoZone       = "kodo_zone"
 
 	KeyPandoraEmail = "qiniu_email"
 
@@ -66,6 +73,7 @@ const (
 	// Sender's conf keys
 	KeySenderType        = "sender_type"
 	KeyFaultTolerant     = "fault_tolerant"
+	KeyDirectMode        = "direct_mode"
 	KeyName              = "name"
 	KeyLogkitSendTime    = "logkit_send_time"
 	KeyIsMetrics         = "is_metrics"
@@ -81,6 +89,7 @@ const (
 	TypeDiscard           = "discard"       // discard sender
 	TypeElastic           = "elasticsearch" // elastic
 	TypeKafka             = "kafka"         // kafka
+	TypeKodo              = "kodo"          // kodo
 	TypeHttp              = "http"          // http sender
 
 	InnerUserAgent = "_useragent"
@@ -140,6 +149,13 @@ const (
 	// 可选参数 当sender_type 为file 的时候
 	KeyFileSenderPath = "file_send_path"
 
+	DefaultFileSyncEver             = 10
+	KeyFileRotateIntervalSyncSecond = "file_rotate_interval"
+	KeyFileRotateSize               = "file_rotate_size_mb"
+	KeyFileFormatType 				= "file_format_type"
+	KeyFileFormatDelim 				= "file_format_delimit"
+
+
 	// http
 	KeyHttpSenderUrl      = "http_sender_url"
 	KeyHttpSenderGzip     = "http_sender_gzip"
@@ -195,6 +211,11 @@ type Sender interface {
 	// send data, error if failed
 	Send([]Data) error
 	Close() error
+}
+
+type FileSender interface {
+	Sender
+	SendFile(file queue.LogKitFile) error
 }
 
 type StatsSender interface {
@@ -256,11 +277,20 @@ func (r *Registry) NewSender(conf conf.MapConf, ftSaveLogPath string) (sender Se
 	if err != nil {
 		return
 	}
-	faultTolerant, _ := conf.GetBoolOr(KeyFaultTolerant, true)
-	if faultTolerant {
-		sender, err = NewFtSender(sender, conf, ftSaveLogPath)
+
+	// TODO 发送到kodo的sender 暂时只支持传输文件
+	if TypeKodo == sendType {
+		sender, err = NewFileSenders(sender, conf, ftSaveLogPath)
 		if err != nil {
 			return
+		}
+	} else {
+		faultTolerant, _ := conf.GetBoolOr(KeyFaultTolerant, true)
+		if faultTolerant {
+			sender, err = NewFtSender(sender, conf, ftSaveLogPath)
+			if err != nil {
+				return
+			}
 		}
 	}
 	return sender, nil

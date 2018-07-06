@@ -10,4 +10,5 @@ import (
 	_ "github.com/qiniu/logkit/sender/mock"
 	_ "github.com/qiniu/logkit/sender/mongodb"
 	_ "github.com/qiniu/logkit/sender/pandora"
+	_ "github.com/qiniu/logkit/sender/kodo"
 )
