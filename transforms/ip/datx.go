@@ -13,8 +13,9 @@ type datxLocator struct {
 }
 
 // newDatxLocatorWithData returns a new datx format IP loc with given data.
-func newDatxLocatorWithData(data []byte) (*datxLocator, error) {
+func newDatxLocatorWithData(data []byte, path string) (*datxLocator, error) {
 	loc := new(datxLocator)
+	loc.path = path
 	if err := loc.init(data); err != nil {
 		return nil, err
 	}
@@ -27,12 +28,10 @@ func newDatxLocator(dataFile string) (*datxLocator, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	loc, err := newDatxLocatorWithData(data)
+	loc, err := newDatxLocatorWithData(data, dataFile)
 	if err != nil {
 		return nil, err
 	}
-
 	return loc, nil
 }
 
@@ -168,4 +167,11 @@ func (loc *datxLocator) Find(ipstr string) (*LocationInfo, error) {
 		return nil, ErrInvalidIP
 	}
 	return loc.FindByUint(binary.BigEndian.Uint32([]byte(ip.To4()))), nil
+}
+
+func (loc *datxLocator) Close() error {
+	if loc.index != nil && len(loc.index) > 0 {
+		locatorStore.Remove(loc.path)
+	}
+	return nil
 }
